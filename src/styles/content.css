@@ -1,0 +1,1257 @@
+/* ============================================================================
+   Netflix Comments — in-page panel styles.
+
+   Loaded only inside the Shadow DOM host, so nothing here leaks into (or is
+   overridden by) Netflix's own CSS.
+
+   Visual identity: soft charcoal, hairline borders and compact conversation
+   rows. Coral marks primary actions and likes; pastel avatars distinguish
+   viewers. Playback timestamps stay neutral so the discussion leads.
+   ========================================================================== */
+
+:host,
+.nc-panel,
+.nc-launcher {
+  /* Surfaces — near-black (not pure #000, which smears on OLED while scrolling). */
+  --nc-bg: #0e0e10;
+  --nc-bg-elevated: #121214;
+  --nc-surface: #171719;
+  --nc-surface-raised: #202023;
+  --nc-surface-hover: #29292d;
+  --nc-border: rgba(255, 255, 255, 0.055);
+  --nc-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Text — tuned for >= 4.5:1 on --nc-bg. */
+  --nc-text: #ededf0;
+  --nc-text-dim: #a0a0a8;
+  --nc-text-faint: #81818c;
+
+  /* Coral for icons and focus; a deeper shade for actions with white text. */
+  --nc-accent: #ec5360;
+  --nc-accent-hover: #fa6874;
+  --nc-accent-press: #cc3b48;
+  --nc-accent-ink: #ffffff;
+  --nc-accent-soft: rgba(236, 83, 96, 0.1);
+  --nc-accent-ring: rgba(236, 83, 96, 0.45);
+
+  /* Muted gold — playback-timestamp badges, the "new comment" flash, the
+     reply-thread toggle. A quiet highlight, never a call to action. */
+  --nc-gold: #d4a24e;
+  --nc-gold-soft: rgba(212, 162, 78, 0.14);
+
+  /* Like affordance — a distinct pink, universally "heart". */
+  --nc-like: #ee5962;
+  --nc-like-soft: rgba(238, 89, 98, 0.1);
+
+  /* Feedback */
+  --nc-danger: #ff6b6b;
+  --nc-danger-soft: rgba(255, 107, 107, 0.12);
+  --nc-danger-border: rgba(255, 107, 107, 0.34);
+
+  --nc-focus: var(--nc-accent-hover);
+
+  /* Radii — tighter than before for a crisper, less "bubbly" feel. */
+  --nc-radius-lg: 14px;
+  --nc-radius-md: 10px;
+  --nc-radius-sm: 7px;
+  --nc-radius-pill: 999px;
+
+  /* Elevation — one soft drop shadow + a hairline ring. No colour glow. */
+  --nc-shadow-panel: 0 12px 32px -12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px var(--nc-border);
+  --nc-shadow-launcher: 0 8px 20px -10px rgba(0, 0, 0, 0.55),
+    0 0 0 1px var(--nc-border);
+
+  /* Motion */
+  --nc-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --nc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --nc-dur-1: 120ms;
+  --nc-dur-2: 190ms;
+  --nc-dur-3: 260ms;
+
+  --nc-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+/* ---- Positioning shell -------------------------------------------------- */
+
+.nc-panel,
+.nc-launcher {
+  /* Anchored top-right, clear of Netflix's playback chrome: the seek bar and
+     transport controls sit along the bottom edge; the back button/title sit
+     top-left. */
+  position: fixed;
+  right: 20px;
+  top: 76px;
+  z-index: 2147483647;
+  font-family: var(--nc-font);
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+.nc-panel *,
+.nc-launcher * {
+  box-sizing: border-box;
+}
+
+.nc-panel :focus-visible,
+.nc-launcher:focus-visible {
+  outline: 2px solid var(--nc-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Launcher (closed state): compact icon and comment count ------------ */
+
+.nc-launcher {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 68px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--nc-border-strong);
+  border-radius: var(--nc-radius-pill);
+  background: var(--nc-bg-elevated);
+  color: var(--nc-text);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--nc-font);
+  cursor: pointer;
+  box-shadow: var(--nc-shadow-launcher);
+  transition: transform var(--nc-dur-2) var(--nc-ease-out),
+    background var(--nc-dur-1) ease, border-color var(--nc-dur-1) ease;
+  animation: nc-pop-in var(--nc-dur-3) var(--nc-ease-out);
+}
+
+.nc-launcher:hover {
+  background: var(--nc-surface-raised);
+  border-color: var(--nc-accent-ring);
+  transform: translateY(-1px);
+}
+
+.nc-launcher:active {
+  transform: translateY(0);
+}
+
+.nc-launcher-icon {
+  color: var(--nc-accent);
+  display: inline-flex;
+}
+
+.nc-launcher-count {
+  color: var(--nc-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Panel shell ------------------------------------------------------- */
+
+.nc-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(384px, calc(100vw - 40px));
+  max-height: min(600px, calc(100vh - 100px));
+  background: var(--nc-bg);
+  color: var(--nc-text);
+  border-radius: var(--nc-radius-lg);
+  border: 1px solid var(--nc-border);
+  box-shadow: var(--nc-shadow-panel);
+  overflow: hidden;
+  animation: nc-panel-in var(--nc-dur-3) var(--nc-ease-out);
+}
+
+.nc-panel[hidden] {
+  display: none;
+}
+
+/* ---- Header --------------------------------------------------------------- */
+
+.nc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--nc-border);
+  flex-shrink: 0;
+  background: var(--nc-bg);
+}
+
+.nc-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.nc-title-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: #25252b;
+  color: #b4b4be;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.nc-header-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nc-header-subtitle {
+  font-size: 10px;
+  color: var(--nc-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nc-header-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-header-dot {
+  color: var(--nc-text-faint);
+}
+
+.nc-header-user {
+  color: var(--nc-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nc-header-controls {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.nc-header-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--nc-radius-sm);
+}
+
+/* ---- Shared icon button ------------------------------------------------- */
+
+.nc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--nc-text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  border-radius: var(--nc-radius-sm);
+  transition: background var(--nc-dur-1) ease, color var(--nc-dur-1) ease,
+    transform var(--nc-dur-1) ease;
+}
+
+.nc-icon-btn:hover:not(:disabled) {
+  background: var(--nc-surface-raised);
+  color: var(--nc-text);
+}
+
+.nc-icon-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.nc-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ---- Collapse region (composer + body) -------------------------------------
+   Grid 1fr -> 0fr gives a smooth two-way minimize/expand with no JS height
+   measurement. */
+
+.nc-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  transition: grid-template-rows var(--nc-dur-3) var(--nc-ease);
+}
+
+.nc-collapse > .nc-collapse-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.nc-panel--minimized .nc-collapse {
+  grid-template-rows: 0fr;
+}
+
+.nc-panel--minimized .nc-header {
+  border-bottom-color: transparent;
+}
+
+/* ---- Composer --------------------------------------------------------------- */
+
+.nc-composer { padding: 10px 12px 14px; border-bottom: 1px solid var(--nc-border); }
+.nc-composer-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--nc-border-strong);
+  border-radius: 12px;
+  background: var(--nc-surface);
+  color-scheme: dark;
+  transition: border-color var(--nc-dur-2) ease;
+}
+.nc-composer-card:focus-within { border-color: var(--nc-accent-ring); }
+.nc-reply-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 10px 0;
+  padding: 3px 4px 3px 8px;
+  border-radius: 6px;
+  background: var(--nc-accent-soft);
+  color: var(--nc-text-dim);
+  font-size: 11px;
+}
+.nc-reply-chip-target { color: var(--nc-text); font-weight: 600; overflow-wrap: anywhere; }
+.nc-reply-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nc-text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.nc-reply-chip-close:hover { background: var(--nc-surface-hover); color: var(--nc-text); }
+.nc-composer-field { min-width: 0; display: flex; flex-direction: column; }
+.nc-composer-input {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  max-height: 112px;
+  margin: 10px 0 2px;
+  padding: 0 10px;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nc-border-strong) transparent;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--nc-text);
+  font: 12px/1.6 var(--nc-font);
+  caret-color: var(--nc-accent);
+  outline: none;
+}
+.nc-composer-input::placeholder { color: var(--nc-text-dim); opacity: 1; }
+/* The card provides the text field's focus indicator. */
+.nc-composer-input:focus-visible { outline: none; }
+.nc-composer-input:disabled { opacity: 0.6; cursor: progress; }
+.nc-composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 8px 8px; }
+.nc-composer-meta { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--nc-text-dim); font-size: 10px; }
+.nc-composer-ts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--nc-text-dim);
+  font: 600 10px/1 var(--nc-font);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.nc-composer-ts-toggle--active { background: var(--nc-surface-hover); color: var(--nc-text); }
+.nc-composer-ts-toggle:hover { border-color: var(--nc-border-strong); }
+.nc-composer-count { font-variant-numeric: tabular-nums; }
+.nc-composer-count--warn { color: var(--nc-gold); }
+.nc-composer-count--over { color: var(--nc-danger); }
+.nc-composer-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.nc-composer-hint { color: var(--nc-text-faint); font-size: 9px; white-space: nowrap; }
+.nc-post-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--nc-accent-press);
+  color: white;
+  font: 600 12px var(--nc-font);
+  cursor: pointer;
+  transition: background var(--nc-dur-1) ease, transform var(--nc-dur-1) ease;
+}
+.nc-post-btn:hover:not(:disabled) { background: #b83541; }
+.nc-post-btn:active:not(:disabled) { transform: scale(0.96); }
+.nc-post-btn:disabled { background: var(--nc-surface-hover); color: var(--nc-text-faint); cursor: not-allowed; }
+.nc-composer .nc-post-btn { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+.nc-composer .nc-post-btn:not(:disabled) { background: var(--nc-accent); }
+.nc-composer .nc-post-btn:not(:disabled):hover { background: var(--nc-accent-hover); }
+
+
+/* ---- Logged-out prompt ------------------------------------------------------ */
+
+.nc-auth-prompt {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--nc-border);
+  flex-shrink: 0;
+  background: var(--nc-bg-elevated);
+}
+
+.nc-auth-prompt-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nc-accent);
+  background: var(--nc-accent-soft);
+}
+
+.nc-auth-prompt-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nc-text-dim);
+}
+
+.nc-auth-prompt-text strong {
+  color: var(--nc-text);
+  font-weight: 600;
+}
+
+/* ---- Action error toast --------------------------------------------------- */
+
+.nc-action-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 16px 0;
+  padding: 9px 10px 9px 12px;
+  background: var(--nc-danger-soft);
+  border: 1px solid var(--nc-danger-border);
+  border-radius: var(--nc-radius-sm);
+  color: var(--nc-text);
+  font-size: 12px;
+  line-height: 1.4;
+  animation: nc-slide-down var(--nc-dur-2) var(--nc-ease-out);
+}
+
+.nc-action-error-icon {
+  color: var(--nc-danger);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.nc-action-error-text {
+  flex: 1;
+}
+
+.nc-action-error .nc-reply-chip-close {
+  margin: -2px -2px 0 0;
+}
+
+/* ---- Scroll body ------------------------------------------------------------ */
+
+.nc-body-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.nc-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nc-border-strong) transparent;
+}
+
+.nc-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.nc-body::-webkit-scrollbar-thumb {
+  background: var(--nc-border);
+  border-radius: var(--nc-radius-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.nc-body::-webkit-scrollbar-thumb:hover {
+  background: var(--nc-border-strong);
+  background-clip: padding-box;
+}
+
+/* Top / bottom scroll fades — toggled by data-scroll on the wrapper. */
+.nc-body-wrap::before,
+.nc-body-wrap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 10px;
+  height: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--nc-dur-2) ease;
+  z-index: 1;
+}
+
+.nc-body-wrap::before {
+  top: 0;
+  background: linear-gradient(var(--nc-bg), transparent);
+}
+
+.nc-body-wrap::after {
+  bottom: 0;
+  background: linear-gradient(transparent, var(--nc-bg));
+}
+
+.nc-body-wrap[data-scroll-top='true']::before {
+  opacity: 1;
+}
+
+.nc-body-wrap[data-scroll-bottom='true']::after {
+  opacity: 1;
+}
+
+/* ---- Comment list --------------------------------------------------------- */
+
+.nc-comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 18px 20px;
+}
+
+.nc-comment {
+  display: flex;
+  gap: 10px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-comment:last-child {
+  border-bottom: none;
+}
+
+.nc-comment--enter {
+  animation: nc-comment-in var(--nc-dur-3) var(--nc-ease-out);
+}
+
+.nc-comment--new > .nc-comment-body {
+  position: relative;
+}
+
+.nc-comment--new > .nc-comment-body::before {
+  content: '';
+  position: absolute;
+  inset: -8px -10px;
+  border-radius: var(--nc-radius-md);
+  background: var(--nc-gold-soft);
+  animation: nc-highlight-fade 2.4s var(--nc-ease-out) forwards;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.nc-comment-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--nc-surface-raised);
+  color: #252326;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.nc-comment--reply .nc-comment-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+
+.nc-comment-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.nc-comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nc-comment-author {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.nc-comment-time {
+  font-size: 10px;
+  color: var(--nc-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-comment-text {
+  margin: 6px 0 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--nc-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.nc-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -6px;
+  flex-wrap: wrap;
+}
+
+.nc-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  color: var(--nc-text-dim);
+  font-size: 10px;
+  font-weight: 500;
+  font-family: var(--nc-font);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--nc-radius-sm);
+  transition: background var(--nc-dur-1) ease, color var(--nc-dur-1) ease;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.nc-action-btn:hover:not(:disabled) {
+  background: var(--nc-surface-raised);
+  color: var(--nc-text);
+}
+
+.nc-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.nc-action-btn--like:hover:not(:disabled) {
+  color: var(--nc-like);
+  background: var(--nc-like-soft);
+}
+
+.nc-action-btn--active {
+  color: var(--nc-like);
+}
+
+.nc-action-btn--disagree:hover:not(:disabled),
+.nc-action-btn--disagree.nc-action-btn--active {
+  color: var(--nc-gold);
+  background: transparent;
+}
+
+.nc-comment-you {
+  padding: 0 4px;
+  border: 1px solid var(--nc-border-strong);
+  border-radius: 3px;
+  color: var(--nc-text-dim);
+  font-size: 8px;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.nc-comment-menu { position: relative; margin-left: auto; }
+.nc-comment-menu summary { display: grid; place-items: center; width: 26px; height: 24px; color: var(--nc-text-dim); cursor: pointer; border-radius: 5px; list-style: none; }
+.nc-comment-menu summary::-webkit-details-marker { display: none; }
+.nc-comment-menu summary:hover { color: var(--nc-text); background: var(--nc-surface-hover); }
+.nc-comment-menu-items { position: absolute; z-index: 2; right: 0; bottom: calc(100% + 5px); display: flex; flex-direction: column; padding: 4px; min-width: 100px; border: 1px solid var(--nc-border-strong); border-radius: 8px; background: var(--nc-surface-raised); box-shadow: 0 4px 16px #0006; }
+.nc-comment-menu-items .nc-action-btn { padding: 7px 9px; }
+
+.nc-like-icon {
+  display: inline-flex;
+  transition: transform var(--nc-dur-1) var(--nc-ease-out);
+}
+
+.nc-action-btn--active .nc-like-icon {
+  animation: nc-like-pop 360ms var(--nc-ease-out);
+}
+
+/* ---- Nested replies ------------------------------------------------------- */
+
+.nc-comment-replies {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 2px 0 0 16px;
+  border-left: 2px solid var(--nc-border);
+}
+
+.nc-comment--reply {
+  padding: 11px 0 4px;
+}
+
+.nc-replies-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 8px 4px 6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--nc-radius-sm);
+  color: var(--nc-accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nc-font);
+  cursor: pointer;
+}
+
+.nc-replies-toggle:hover {
+  color: var(--nc-text);
+  background: var(--nc-surface-raised);
+}
+
+.nc-replies-toggle-chevron {
+  transition: transform var(--nc-dur-2) var(--nc-ease);
+}
+
+.nc-replies-toggle[aria-expanded='true'] .nc-replies-toggle-chevron {
+  transform: rotate(180deg);
+}
+
+/* ---- Edit / delete own comment ---------------------------------------------- */
+
+/* Quiet "edited" marker next to the timestamp — same weight as the time. */
+.nc-comment-edited {
+  font-size: 11px;
+  color: var(--nc-text-faint);
+  font-style: italic;
+}
+
+/* Destructive action button (Delete). Neutral until hovered, then danger-tinted. */
+.nc-action-btn--danger:hover:not(:disabled) {
+  color: var(--nc-danger);
+  background: var(--nc-danger-soft);
+}
+
+/* Inline delete confirmation, shown in place of the actions row. */
+.nc-comment-confirm {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nc-comment-confirm-text {
+  font-size: 12px;
+  color: var(--nc-text-dim);
+  padding: 5px 2px 5px 8px;
+}
+
+/* Inline editor — mirrors the composer input, scoped to a single comment. */
+.nc-comment-edit {
+  margin: 3px 0 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nc-comment-edit-input {
+  width: 100%;
+  min-height: 38px;
+  max-height: 200px;
+  resize: none;
+  background: var(--nc-surface);
+  border: 1px solid var(--nc-border);
+  border-radius: var(--nc-radius-md);
+  color: var(--nc-text);
+  font-family: var(--nc-font);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color var(--nc-dur-1) ease, box-shadow var(--nc-dur-1) ease,
+    background var(--nc-dur-1) ease;
+}
+
+.nc-comment-edit-input:focus {
+  border-color: var(--nc-accent);
+  box-shadow: 0 0 0 3px var(--nc-accent-soft);
+  background: var(--nc-bg-elevated);
+}
+
+.nc-comment-edit-input:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.nc-comment-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Tombstone left behind by a soft-deleted comment that still anchors replies. */
+.nc-comment--deleted .nc-comment-avatar {
+  background: var(--nc-surface);
+  color: var(--nc-text-faint);
+}
+
+.nc-comment-text--deleted {
+  font-style: italic;
+  color: var(--nc-text-faint);
+}
+
+/* ---- Progressive "show more" -------------------------------------------- */
+
+.nc-show-more {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  background: var(--nc-surface);
+  border: 1px solid var(--nc-border);
+  border-radius: var(--nc-radius-sm);
+  color: var(--nc-text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nc-font);
+  cursor: pointer;
+  transition: background var(--nc-dur-1) ease;
+}
+
+.nc-show-more:hover {
+  background: var(--nc-surface-raised);
+}
+
+/* ---- Episode activity and discussion controls ------------------------------ */
+
+.nc-activity { padding: 12px 14px 4px; flex-shrink: 0; }
+.nc-activity-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--nc-text-dim); font-size: 10px; }
+.nc-activity-time { flex-shrink: 0; font: 10px/1.4 ui-monospace, Consolas, monospace; }
+.nc-activity-time strong { color: var(--nc-text); font-weight: 600; }
+.nc-activity-bars { display: flex; position: relative; align-items: flex-end; gap: 2px; height: 32px; margin-top: 5px; }
+.nc-activity-bar { flex: 1 1 0; min-width: 0; padding: 0; border: 0; border-radius: 1.5px 1.5px 0 0; background: #29292e; }
+button.nc-activity-bar { cursor: pointer; }
+.nc-activity-bar--played { background: #62626c; }
+button.nc-activity-bar:hover { background: var(--nc-accent); }
+.nc-activity-cursor { position: absolute; bottom: -2px; height: 31px; width: 1px; background: var(--nc-accent); pointer-events: none; }
+.nc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; flex-shrink: 0; font-size: 10px; }
+.nc-scope-select { min-width: 0; max-width: 124px; height: 28px; padding: 0 7px; border: 1px solid var(--nc-border-strong); border-radius: 7px; background: var(--nc-surface); color: var(--nc-text); color-scheme: dark; font: 600 10px var(--nc-font); cursor: pointer; }
+.nc-sort-seg { display: inline-flex; gap: 1px; padding: 2px; border: 1px solid var(--nc-border); border-radius: 7px; background: var(--nc-bg-elevated); }
+.nc-sort-seg-btn { padding: 4px 7px; border: 0; border-radius: 5px; background: transparent; color: var(--nc-text-dim); font: 600 10px var(--nc-font); cursor: pointer; white-space: nowrap; }
+.nc-sort-seg-btn:hover:not(:disabled) { color: var(--nc-text); }
+.nc-sort-seg-btn--active { background: var(--nc-surface-hover); color: var(--nc-text); }
+.nc-sort-seg-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.nc-scope-note { margin: 0; padding: 0 14px 9px; color: var(--nc-text-dim); font-size: 10px; }
+.nc-moment-tools { display: flex; justify-content: flex-end; padding: 0 14px 5px; }
+.nc-jump-now { border: 0; background: transparent; color: var(--nc-text-dim); padding: 3px 0; font: 10px var(--nc-font); cursor: pointer; }
+.nc-jump-now:hover:not(:disabled) { color: var(--nc-accent); }
+.nc-jump-now:disabled { opacity: 0.4; cursor: not-allowed; }
+
+
+/* ---- Playback-timestamp badge on a comment ---------------------------------- */
+
+.nc-ts-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 5px;
+  background: var(--nc-surface-hover);
+  color: var(--nc-text);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--nc-font);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: filter var(--nc-dur-1) ease;
+}
+
+.nc-ts-badge:hover {
+  filter: brightness(1.25);
+}
+
+/* ---- Spoiler guard: comments stamped ahead of the current playback point --- */
+
+.nc-comment-text--spoiler {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: filter var(--nc-dur-2) ease;
+}
+
+.nc-spoiler-reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0 7px;
+  padding: 4px 9px;
+  background: var(--nc-gold-soft);
+  border: none;
+  border-radius: var(--nc-radius-sm);
+  color: var(--nc-gold);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--nc-font);
+  cursor: pointer;
+  transition: filter var(--nc-dur-1) ease;
+}
+
+.nc-spoiler-reveal:hover {
+  filter: brightness(1.25);
+}
+
+/* ---- Panel states (loading / empty / error / undetected) --------------- */
+
+.nc-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 28px;
+  gap: 4px;
+  animation: nc-fade-in var(--nc-dur-3) var(--nc-ease-out);
+}
+
+.nc-state-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nc-accent);
+  background: var(--nc-accent-soft);
+}
+
+.nc-state-icon--danger {
+  color: var(--nc-danger);
+  background: var(--nc-danger-soft);
+}
+
+.nc-state-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nc-text);
+}
+
+.nc-state-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--nc-text-dim);
+  line-height: 1.55;
+  max-width: 30ch;
+}
+
+.nc-state-action {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--nc-accent-press);
+  color: var(--nc-accent-ink);
+  border: none;
+  border-radius: var(--nc-radius-sm);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nc-font);
+  cursor: pointer;
+  transition: background var(--nc-dur-1) ease, transform var(--nc-dur-1) ease;
+}
+
+.nc-state-action:hover {
+  background: #b83541;
+}
+
+.nc-state-action:active {
+  transform: scale(0.97);
+}
+
+.nc-state-action--ghost {
+  background: var(--nc-surface-raised);
+  color: var(--nc-text);
+  border: 1px solid var(--nc-border);
+}
+
+.nc-state-action--ghost:hover {
+  background: var(--nc-surface-hover);
+}
+
+/* ---- Loading skeleton --------------------------------------------------- */
+
+.nc-skeleton {
+  padding: 12px 16px;
+}
+
+.nc-skel-row {
+  display: flex;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--nc-border);
+}
+
+.nc-skel-row:last-child {
+  border-bottom: none;
+}
+
+.nc-skel-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.nc-skel-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 3px;
+}
+
+.nc-skel-line {
+  height: 10px;
+  border-radius: 5px;
+}
+
+.nc-skel-avatar,
+.nc-skel-line {
+  position: relative;
+  overflow: hidden;
+  background: var(--nc-surface);
+}
+
+.nc-skel-avatar::after,
+.nc-skel-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  animation: nc-shimmer 1.5s ease-in-out infinite;
+}
+
+.nc-skel-line--sm {
+  width: 40%;
+}
+.nc-skel-line--md {
+  width: 72%;
+}
+.nc-skel-line--lg {
+  width: 92%;
+}
+
+/* ---- Utilities -------------------------------------------------------------- */
+
+.nc-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.nc-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: nc-spin 0.7s linear infinite;
+}
+
+/* ---- Keyframes -------------------------------------------------------------- */
+
+@keyframes nc-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+@keyframes nc-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes nc-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes nc-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes nc-comment-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes nc-highlight-fade {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nc-like-pop {
+  35% {
+    transform: scale(1.4);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+}
+
+@keyframes nc-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes nc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Small window / mobile ---------------------------------------------------
+   Below 600px the panel becomes a bottom sheet: full width, docked to the
+   bottom edge, taller. Netflix's own layout collapses its chrome here too. */
+
+@media (max-width: 600px) {
+  .nc-panel {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 82vh;
+    border-radius: var(--nc-radius-lg) var(--nc-radius-lg) 0 0;
+    border-bottom: none;
+    animation: nc-sheet-in var(--nc-dur-3) var(--nc-ease-out);
+  }
+
+  .nc-launcher {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .nc-comment-replies {
+    padding-left: 10px;
+  }
+
+  .nc-header,
+  .nc-composer,
+  .nc-auth-prompt {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+@keyframes nc-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* Short viewports (landscape phones, small player windows). */
+@media (max-height: 480px) {
+  .nc-panel {
+    max-height: calc(100vh - 24px);
+    top: 12px;
+  }
+}
+
+/* ---- Reduced motion ------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .nc-panel,
+  .nc-launcher,
+  .nc-panel *,
+  .nc-panel *::before,
+  .nc-panel *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .nc-collapse {
+    transition: none;
+  }
+}
